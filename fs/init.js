@@ -24,6 +24,8 @@ let force_update_interval = 5; // in seconds
 GPIO.set_mode(pir_pin, GPIO.MODE_INPUT);
 GPIO.set_mode(relay_pin, GPIO.MODE_OUTPUT);
 GPIO.set_pull(relay_pin, GPIO.PULL_UP);
+// Turn the relay on by default, assume that a power cycle means that we want that light on.
+GPIO.write(relay_pin, 1);
 
 // Check the PIR sensor every second
 Timer.set(1000, true, function() {
@@ -56,7 +58,7 @@ Timer.set(force_update_interval*1000, true, function() {
 MQTT.sub(light_state_topic+'/set', function(conn, topic, msg) {
   print('Topic:', topic, 'message:', msg);
   light_state = msg === 'ON' ? 1 : 0;
-  GPIO.write(relay_pin, lightOn);
+  GPIO.write(relay_pin, light_state);
   // Publish the change!
   push_light_update(light_state);
 }, null);
