@@ -19,7 +19,7 @@ let light_state = 0;
 let eventsBeforeChange = 5; // Number of times we need to see the same state before changing ours
 let concurrentEvents = 0;   // Number of times we've seen the a new state
 
-let force_update_interval = 5; // in seconds
+let force_update_interval = 30; // in seconds
 
 GPIO.set_mode(pir_pin, GPIO.MODE_INPUT);
 GPIO.set_mode(relay_pin, GPIO.MODE_OUTPUT);
@@ -37,6 +37,7 @@ Timer.set(1000, true, function() {
     if (concurrentEvents === eventsBeforeChange){
       pir_state = pirVal;
       push_pir_update(pir_state);
+      set_light_state(pir_state);
       concurrentEvents = 0;
     }
   }
@@ -58,9 +59,7 @@ Timer.set(force_update_interval*1000, true, function() {
 MQTT.sub(light_state_topic+'/set', function(conn, topic, msg) {
   print('Topic:', topic, 'message:', msg);
   light_state = msg === 'ON' ? 1 : 0;
-  GPIO.write(relay_pin, light_state);
-  // Publish the change!
-  push_light_update(light_state);
+  set_light_state(light_state);
 }, null);
 
 function push_pir_update(state){
@@ -71,6 +70,12 @@ function push_pir_update(state){
 function push_light_update(state){
   let ok = MQTT.pub(light_state_topic, state ? 'ON' : 'OFF', 1);
   print('Light Publish:', ok ? 'Success!' : 'Failed');
+}
+
+function set_light_state(state){
+  GPIO.write(relay_pin, state);
+  // Publish the change!
+  push_light_update(light_state);
 }
 
 // Monitor network connectivity.
